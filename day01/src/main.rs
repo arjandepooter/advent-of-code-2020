@@ -1,3 +1,7 @@
+#![feature(test)]
+
+extern crate test;
+
 const INPUT: &'static str = include_str!("./input.txt");
 
 type Solution = i32;
@@ -7,9 +11,17 @@ fn parse_input(data: &str) -> Vec<i32> {
 }
 
 fn find_sum(vec: &Vec<i32>, n: i32) -> Option<(i32, i32)> {
-    vec.into_iter()
-        .find(|entry| vec.contains(&(n - *entry)))
-        .map(|entry| (*entry, n - entry))
+    let mut cloned = vec.clone();
+    cloned.sort();
+
+    for entry in vec {
+        let opposite = n - entry;
+        if let Ok(_) = cloned.binary_search(&opposite) {
+            return Some((*entry, opposite));
+        }
+    }
+
+    None
 }
 
 fn find_triplet(vec: &Vec<i32>, n: i32) -> Option<(i32, i32, i32)> {
@@ -43,6 +55,7 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use test::Bencher;
 
     const EXAMPLE: &str = "1721
 979
@@ -59,5 +72,14 @@ mod tests {
     #[test]
     fn examples_b() {
         assert_eq!(solve_b(EXAMPLE), 241861950);
+    }
+    #[bench]
+    fn benchmark_a(b: &mut Bencher) {
+        b.iter(|| solve_a(INPUT))
+    }
+
+    #[bench]
+    fn benchmark_b(b: &mut Bencher) {
+        b.iter(|| solve_b(INPUT))
     }
 }
