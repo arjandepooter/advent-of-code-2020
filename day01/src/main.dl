@@ -1,0 +1,22 @@
+.decl entry(x:number)
+.input entry(IO=file, filename="./input.txt")
+
+.decl solutionA(x:number, y:number, s:number)
+.output solutionA(IO=stdout)
+
+solutionA(x, y, x * y) :- 
+    entry(x), 
+    entry(y), 
+    x <= y,
+    x + y = 2020.
+
+.decl solutionB(x:number, y:number, z:number, s:number)
+.output solutionB(IO=stdout)
+
+solutionB(x, y, z, x * y * z) :- 
+    entry(x), 
+    entry(y), 
+    entry(z), 
+    x <= y,
+    y <= z,
+    x + y + z = 2020.
