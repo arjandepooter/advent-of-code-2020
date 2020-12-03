@@ -53,7 +53,7 @@ fn solve_a(data: &str) -> Solution {
 
 fn solve_b(data: &str) -> Solution {
     let map = parse_input(data);
-    let slopes: &[(usize, usize); 5] = &[(1, 1), (3, 1), (5, 1), (7, 1), (1, 2)];
+    let slopes = &[(1, 1), (3, 1), (5, 1), (7, 1), (1, 2)];
 
     slopes
         .into_iter()
