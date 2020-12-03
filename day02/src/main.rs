@@ -37,7 +37,8 @@ impl FromStr for Password {
 impl Password {
     fn is_valid(&self) -> bool {
         let count = self.password.chars().filter(|c| *c == self.char).count();
-        (self.start..=self.stop).contains(&count)
+
+        count >= self.start && count <= self.stop
     }
 
     fn is_valid_b(&self) -> bool {
@@ -49,20 +50,15 @@ impl Password {
 }
 
 fn parse_lines(data: &'static str) -> impl Iterator<Item = Password> {
-    data.lines()
-        .filter_map(|line| line.parse::<Password>().ok())
+    data.lines().filter_map(|line| line.parse().ok())
 }
 
 fn solve_a(data: &'static str) -> Solution {
-    let passwords = parse_lines(data);
-
-    passwords.filter(Password::is_valid).count()
+    parse_lines(data).filter(Password::is_valid).count()
 }
 
 fn solve_b(data: &'static str) -> Solution {
-    let passwords = parse_lines(data);
-
-    passwords.filter(Password::is_valid_b).count()
+    parse_lines(data).filter(Password::is_valid_b).count()
 }
 
 fn main() {
