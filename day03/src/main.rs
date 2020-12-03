@@ -1,7 +1,8 @@
+use std::str::FromStr;
+
 const INPUT: &'static str = include_str!("./input.txt");
 
 type Solution = usize;
-type Map = Vec<Vec<Cell>>;
 
 #[derive(Copy, Clone)]
 enum Cell {
@@ -26,39 +27,54 @@ impl Cell {
         }
     }
 }
+struct Map(Vec<Vec<Cell>>);
 
-fn parse_input(data: &str) -> Map {
-    data.lines()
-        .map(|line| line.chars().map(|c| c.into()).collect())
-        .collect()
+#[derive(Debug)]
+struct ParseError;
+
+impl FromStr for Map {
+    type Err = ParseError;
+
+    fn from_str(data: &str) -> Result<Self, Self::Err> {
+        let map: Vec<Vec<Cell>> = data
+            .lines()
+            .map(|line| line.chars().map(|c| c.into()).collect())
+            .collect();
+
+        Ok(Map(map))
+    }
 }
 
-fn traverse_map(map: &Map, right: usize, down: usize) -> Vec<Cell> {
-    let height = map.len() / down;
-    let width = map[0].len();
+impl Map {
+    fn traverse(&self, right: usize, down: usize) -> Vec<Cell> {
+        let map = &self.0;
+        let height = map.len() / down;
+        let width = map[0].len();
 
-    (0..height)
-        .map(|i| map[i * down][i * right % width])
-        .collect()
+        (0..height)
+            .map(|i| map[i * down][i * right % width])
+            .collect()
+    }
+}
+
+fn count_trees(path: Vec<Cell>) -> usize {
+    path.into_iter().filter(|cell| cell.is_tree()).count()
 }
 
 fn solve_a(data: &str) -> Solution {
-    let map = parse_input(data);
+    let map: Map = data.parse().unwrap();
 
-    traverse_map(&map, 3, 1)
-        .into_iter()
-        .filter(Cell::is_tree)
-        .count()
+    count_trees(map.traverse(3, 1))
 }
 
 fn solve_b(data: &str) -> Solution {
-    let map = parse_input(data);
+    let map: Map = data.parse().unwrap();
     let slopes = &[(1, 1), (3, 1), (5, 1), (7, 1), (1, 2)];
 
     slopes
         .into_iter()
-        .map(|(right, down)| traverse_map(&map, *right, *down))
-        .map(|path| path.into_iter().filter(Cell::is_tree).count())
+        .map(|(right, down)| map.traverse(*right, *down))
+        .map(count_trees)
         .product()
 }
 
