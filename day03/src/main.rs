@@ -3,6 +3,7 @@ use std::str::FromStr;
 const INPUT: &'static str = include_str!("./input.txt");
 
 type Solution = usize;
+type Slope = (usize, usize);
 
 #[derive(Copy, Clone)]
 enum Cell {
@@ -46,7 +47,8 @@ impl FromStr for Map {
 }
 
 impl Map {
-    fn traverse(&self, right: usize, down: usize) -> Vec<Cell> {
+    fn traverse(&self, slope: Slope) -> Vec<Cell> {
+        let (right, down) = slope;
         let map = &self.0;
         let height = map.len() / down;
         let width = map[0].len();
@@ -57,24 +59,24 @@ impl Map {
     }
 }
 
-fn count_trees(path: Vec<Cell>) -> usize {
-    path.into_iter().filter(|cell| cell.is_tree()).count()
+fn count_trees(path: &Vec<Cell>) -> usize {
+    path.into_iter().filter(|&cell| cell.is_tree()).count()
 }
 
 fn solve_a(data: &str) -> Solution {
     let map: Map = data.parse().unwrap();
 
-    count_trees(map.traverse(3, 1))
+    count_trees(&map.traverse((3, 1)))
 }
 
 fn solve_b(data: &str) -> Solution {
     let map: Map = data.parse().unwrap();
-    let slopes = &[(1, 1), (3, 1), (5, 1), (7, 1), (1, 2)];
+    let slopes: &[Slope] = &[(1, 1), (3, 1), (5, 1), (7, 1), (1, 2)];
 
     slopes
         .into_iter()
-        .map(|(right, down)| map.traverse(*right, *down))
-        .map(count_trees)
+        .map(|&slope| map.traverse(slope))
+        .map(|path| count_trees(&path))
         .product()
 }
 
