@@ -20,8 +20,7 @@ fn contains_needed_keys(id: &HashMap<&str, &str>) -> bool {
     let needed_keys: HashSet<&str> = (vec!["byr", "iyr", "eyr", "hgt", "hcl", "ecl", "pid"])
         .into_iter()
         .collect();
-
-    let keys: HashSet<&str, _> = id.keys().map(|key| *key).collect();
+    let keys: HashSet<&str> = id.keys().map(|key| *key).collect();
 
     needed_keys.is_subset(&keys)
 }
@@ -62,7 +61,7 @@ fn validate_pid(pid: &str) -> bool {
 }
 
 fn is_valid_id(id: &HashMap<&str, &str>) -> bool {
-    let validators: Vec<(&str, fn(&str) -> bool)> = vec![
+    let validators: &[(&str, fn(&str) -> bool)] = &[
         ("byr", |year| validate_year(year, 1920, 2002)),
         ("iyr", |year| validate_year(year, 2010, 2020)),
         ("eyr", |year| validate_year(year, 2020, 2030)),
@@ -72,7 +71,7 @@ fn is_valid_id(id: &HashMap<&str, &str>) -> bool {
         ("pid", validate_pid),
     ];
 
-    validators.iter().all(|(key, f)| {
+    validators.into_iter().all(|(key, f)| {
         let value = id.get(key).unwrap_or(&"");
         f(value)
     })
