@@ -5,7 +5,7 @@ const INPUT: &'static str = include_str!("./input.txt");
 
 type Solution = usize;
 
-fn parse_input<'a>(data: &'a str) -> Vec<HashMap<&'a str, &'a str>> {
+fn parse_input(data: &str) -> Vec<HashMap<&str, &str>> {
     data.split("\n\n")
         .map(|block| {
             block
@@ -72,9 +72,9 @@ fn is_valid_id(id: &HashMap<&str, &str>) -> bool {
         ("pid", validate_pid),
     ];
 
-    validators.iter().fold(true, |is_valid, (key, f)| {
+    validators.iter().all(|(key, f)| {
         let value = id.get(key).unwrap_or(&"");
-        is_valid && f(value)
+        f(value)
     })
 }
 
