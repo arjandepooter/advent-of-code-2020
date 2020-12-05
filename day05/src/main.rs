@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 const INPUT: &'static str = include_str!("./input.txt");
 
 type Solution = u16;
