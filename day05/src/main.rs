@@ -18,7 +18,7 @@ fn parse_input(data: &str) -> Vec<u16> {
         .collect()
 }
 
-fn find_non_consecutive_number(vec: &Vec<u16>) -> u16 {
+fn find_gap(vec: &Vec<u16>) -> u16 {
     let mut cloned = vec.clone();
     cloned.sort();
 
@@ -27,8 +27,8 @@ fn find_non_consecutive_number(vec: &Vec<u16>) -> u16 {
     cloned
         .into_iter()
         .zip(second_iter)
-        .filter(|(a, b)| b - a > 1)
-        .map(|(_, b)| b)
+        .filter(|(a, b)| b - a == 2)
+        .map(|(a, _)| a + 1)
         .next()
         .unwrap_or(0)
 }
@@ -42,11 +42,7 @@ fn solve_a(data: &str) -> Solution {
 fn solve_b(data: &str) -> Solution {
     let passes = parse_input(data);
 
-    let all_ids: HashSet<u16> = (0..1024).collect();
-    let ids: HashSet<u16> = passes.into_iter().collect();
-    let missing_ids: Vec<u16> = (&all_ids - &ids).into_iter().collect();
-
-    find_non_consecutive_number(&missing_ids)
+    find_gap(&passes)
 }
 
 fn main() {
