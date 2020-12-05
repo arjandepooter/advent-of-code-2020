@@ -16,7 +16,7 @@ fn parse_input(data: &str) -> Vec<u16> {
         .collect()
 }
 
-fn find_gap(vec: &Vec<u16>) -> u16 {
+fn find_gap(vec: &Vec<u16>) -> Option<u16> {
     let mut cloned = vec.clone();
     cloned.sort();
 
@@ -25,10 +25,7 @@ fn find_gap(vec: &Vec<u16>) -> u16 {
     cloned
         .into_iter()
         .zip(second_iter)
-        .filter(|(a, b)| b - a == 2)
-        .map(|(a, _)| a + 1)
-        .next()
-        .unwrap_or(0)
+        .find_map(|(a, b)| if b - a == 2 { Some(a + 1) } else { None })
 }
 
 fn solve_a(data: &str) -> Solution {
@@ -40,7 +37,7 @@ fn solve_a(data: &str) -> Solution {
 fn solve_b(data: &str) -> Solution {
     let passes = parse_input(data);
 
-    find_gap(&passes)
+    find_gap(&passes).unwrap()
 }
 
 fn main() {
