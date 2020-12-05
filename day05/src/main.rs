@@ -1,8 +1,8 @@
 const INPUT: &'static str = include_str!("./input.txt");
 
-type Solution = u16;
+type Solution = u32;
 
-fn parse_line(line: &str) -> Option<u16> {
+fn parse_line(line: &str) -> Option<u32> {
     let binary_string: String = line
         .chars()
         .map(|c| match c {
@@ -11,23 +11,20 @@ fn parse_line(line: &str) -> Option<u16> {
         })
         .collect();
 
-    u16::from_str_radix(&binary_string, 2).ok()
+    u32::from_str_radix(&binary_string, 2).ok()
 }
 
-fn parse_input(data: &str) -> Vec<u16> {
+fn parse_input(data: &str) -> Vec<u32> {
     data.lines().filter_map(parse_line).collect()
 }
 
-fn find_gap(vec: &Vec<u16>) -> Option<u16> {
-    let mut cloned = vec.clone();
-    cloned.sort();
+fn find_gap(vec: &Vec<u32>) -> Option<u32> {
+    let min = *vec.iter().min()?;
+    let max = *vec.iter().max()?;
+    let sum: u32 = vec.iter().sum();
+    let total_sum = (max * max - min * min + min + max) / 2;
 
-    let second_iter = cloned.clone().into_iter().skip(1);
-
-    cloned
-        .into_iter()
-        .zip(second_iter)
-        .find_map(|(a, b)| if b - a == 2 { Some(a + 1) } else { None })
+    Some(total_sum - sum)
 }
 
 fn solve_a(data: &str) -> Solution {
