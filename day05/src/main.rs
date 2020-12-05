@@ -2,18 +2,20 @@ const INPUT: &'static str = include_str!("./input.txt");
 
 type Solution = u16;
 
-fn parse_input(data: &str) -> Vec<u16> {
-    data.lines()
-        .map(|line| {
-            line.chars()
-                .map(|c| match c {
-                    'B' | 'R' => '1',
-                    _ => '0',
-                })
-                .collect::<String>()
+fn parse_line(line: &str) -> Option<u16> {
+    let binary_string: String = line
+        .chars()
+        .map(|c| match c {
+            'B' | 'R' => '1',
+            _ => '0',
         })
-        .filter_map(|s| u16::from_str_radix(&s, 2).ok())
-        .collect()
+        .collect();
+
+    u16::from_str_radix(&binary_string, 2).ok()
+}
+
+fn parse_input(data: &str) -> Vec<u16> {
+    data.lines().filter_map(parse_line).collect()
 }
 
 fn find_gap(vec: &Vec<u16>) -> Option<u16> {
