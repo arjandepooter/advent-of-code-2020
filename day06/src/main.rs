@@ -1,48 +1,42 @@
-#![feature(iterator_fold_self)]
-use std::collections::HashSet;
+type Data = Vec<Vec<u32>>;
 
 const INPUT: &'static str = include_str!("./input.txt");
 
-type Solution = usize;
-
-fn parse_block(block: &str) -> Vec<HashSet<char>> {
-    block.lines().map(|block| block.chars().collect()).collect()
+fn parse_input(data: &str) -> Data {
+    data.split("\n\n")
+        .map(|block| block.lines().map(line_bitmask).collect())
+        .collect()
 }
 
-fn parse_input(data: &str) -> Vec<Vec<HashSet<char>>> {
-    data.split("\n\n").map(parse_block).collect()
+fn line_bitmask(line: &str) -> u32 {
+    line.chars()
+        .fold(0u32, |mask, c| mask | (1 << (c as u8) - ('a' as u8)))
 }
 
-fn solve_a(data: &str) -> Solution {
-    let answer_groups = parse_input(data);
-
-    answer_groups
-        .into_iter()
-        .map(|group| {
-            group
+fn compare_answers(groups: &Data, f: fn(u32, u32) -> u32, initial: u32) -> u32 {
+    groups
+        .iter()
+        .map(|block| {
+            block
                 .into_iter()
-                .fold(HashSet::new(), |ref result, ref answers| answers | result)
-                .len()
+                .map(|n| *n)
+                .fold(initial, |acc, mask| f(acc, mask))
         })
+        .map(|n| n.count_ones())
         .sum()
 }
 
-fn solve_b(data: &str) -> Solution {
-    let answer_groups = parse_input(data);
+fn solve_a(data: &Data) -> u32 {
+    compare_answers(data, |a, b| a | b, 0)
+}
 
-    answer_groups
-        .into_iter()
-        .map(|group| {
-            group
-                .into_iter()
-                .fold_first(|ref result, ref answers| answers & result)
-                .unwrap_or_default()
-                .len()
-        })
-        .sum()
+fn solve_b(data: &Data) -> u32 {
+    compare_answers(data, |a, b| a & b, !0)
 }
 
 fn main() {
-    println!("Part 1: {}", solve_a(INPUT));
-    println!("Part 2: {}", solve_b(INPUT));
+    let groups = parse_input(INPUT);
+
+    println!("Part A: {}", solve_a(&groups));
+    println!("Part B: {}", solve_b(&groups));
 }
