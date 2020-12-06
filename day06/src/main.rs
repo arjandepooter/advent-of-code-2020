@@ -46,18 +46,3 @@ fn main() {
     println!("Part 1: {}", solve_a(INPUT));
     println!("Part 2: {}", solve_b(INPUT));
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn examples_a() {
-        assert_eq!(solve_a(""), 0);
-    }
-
-    #[test]
-    fn examples_b() {
-        assert_eq!(solve_b(""), 0);
-    }
-}
