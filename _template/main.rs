@@ -1,18 +1,28 @@
+#[allow(unused_imports)]
+use shared::prelude::*;
+
 const INPUT: &'static str = include_str!("./input.txt");
 
-type Solution = u32;
+type Data = Vec<&str>;
+type Solution = usize;
 
-fn solve_a(data: &str) -> Solution {
+fn parse_input(input: &str) -> Data {
     todo!()
 }
 
-fn solve_b(data: &str) -> Solution {
+fn solve_a(data: &Data) -> Solution {
+    todo!()
+}
+
+fn solve_b(data: &Data) -> Solution {
     todo!()
 }
 
 fn main() {
-    println!("Part 1: {}", solve_a(INPUT));
-    println!("Part 2: {}", solve_b(INPUT));
+    let data = parse_input(INPUT);
+
+    println!("Part A: {}", solve_a(&data));
+    println!("Part B: {}", solve_b(&data));
 }
 
 #[cfg(test)]
@@ -20,13 +30,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn examples_a() {
-        assert_eq!(solve_a(""), 0);
-    }
+    fn examples_a() {}
 
     #[test]
-    fn examples_b() {
-        assert_eq!(solve_b(""), 0);
-    }
+    fn examples_b() {}
 }
-
