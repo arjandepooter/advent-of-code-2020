@@ -21,7 +21,7 @@ fn solve_a(data: &str) -> Solution {
         .map(|group| {
             group
                 .into_iter()
-                .fold(HashSet::new(), |result, answers| &answers | &result)
+                .fold(HashSet::new(), |ref result, ref answers| answers | result)
                 .len()
         })
         .sum()
@@ -35,8 +35,8 @@ fn solve_b(data: &str) -> Solution {
         .map(|group| {
             group
                 .into_iter()
-                .fold_first(|result, answers| &answers & &result)
-                .unwrap()
+                .fold_first(|ref result, ref answers| answers & result)
+                .unwrap_or_default()
                 .len()
         })
         .sum()
