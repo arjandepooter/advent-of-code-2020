@@ -21,6 +21,7 @@ fn parse_line<'a>(line: &'a str) -> (&'a str, Vec<(&'a str, usize)>) {
             Some((strip_bag_part(bag), amount))
         })
         .collect();
+
     (first.trim_end_matches(" bags"), children)
 }
 
@@ -28,39 +29,40 @@ fn parse_input(input: &str) -> Data {
     input.lines().map(parse_line).collect()
 }
 
-fn solve_a(data: &Data) -> Solution {
-    let mut lookup: Vec<&str> = vec!["shiny gold"];
-    let mut result = HashSet::new();
+fn get_ancestors<'a>(data: &'a Data, from: &'a str) -> Vec<&'a str> {
+    let parents: Vec<&str> = data
+        .into_iter()
+        .filter(|(_, children)| children.into_iter().any(|(bag, _)| *bag == from))
+        .map(|(ancestor, _)| *ancestor)
+        .collect();
 
-    while lookup.len() > 0 {
-        let needle = lookup.pop().unwrap();
-        result.insert(needle);
+    let ancestors: Vec<&str> = parents
+        .iter()
+        .flat_map(|parent| get_ancestors(data, parent))
+        .collect();
 
-        let ext: Vec<_> = data
-            .into_iter()
-            .filter(|(_, children)| children.into_iter().any(|(bag, _)| *bag == needle))
-            .map(|(key, _)| *key)
-            .collect();
-
-        lookup.extend(ext);
-    }
-
-    result.len() - 1
+    parents
+        .into_iter()
+        .chain(ancestors.into_iter())
+        .unique()
+        .collect()
 }
 
-fn count_bags(data: &Data, bag: &str) -> Option<usize> {
-    let children = data.get(bag)?;
+fn solve_a(data: &Data) -> Solution {
+    get_ancestors(data, "shiny gold").len()
+}
 
-    Some(
-        children
-            .into_iter()
-            .map(|(bag, amount)| amount * (1 + count_bags(data, bag).unwrap_or(0)))
-            .sum(),
-    )
+fn count_bags(data: &Data, bag: &str) -> usize {
+    let children = data.get(bag).unwrap();
+
+    children
+        .into_iter()
+        .map(|(bag, amount)| amount * (1 + count_bags(data, bag)))
+        .sum()
 }
 
 fn solve_b(data: &Data) -> Solution {
-    count_bags(data, "shiny gold").unwrap()
+    count_bags(data, "shiny gold")
 }
 
 fn main() {
