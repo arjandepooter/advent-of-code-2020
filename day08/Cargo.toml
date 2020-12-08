@@ -8,5 +8,3 @@ edition = "2018"
 
 [dependencies]
 shared = { path = "../shared" }
-strum = "0.20"
-strum_macros = "0.20"

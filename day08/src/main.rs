@@ -3,8 +3,6 @@
 #[allow(unused_imports)]
 use shared::prelude::*;
 
-use std::str::FromStr;
-
 extern crate test;
 
 const INPUT: &'static str = include_str!("./input.txt");
@@ -19,46 +17,34 @@ enum OpCode {
     Nop,
 }
 
-impl FromStr for OpCode {
-    type Err = ();
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "jmp" => Ok(Self::Jmp),
-            "acc" => Ok(Self::Acc),
-            "nop" => Ok(Self::Nop),
-            _ => Err(()),
-        }
-    }
-}
-
 #[derive(Debug, Clone, Copy)]
 struct Instruction(OpCode, i32);
 
-impl FromStr for Instruction {
-    type Err = ();
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let (op_code, value) = s.split_once(' ').ok_or(())?;
-        let op_code: OpCode = op_code.parse().map_err(|_| ())?;
-        let value: i32 = value.trim().parse().map_err(|_| ())?;
-
-        Ok(Self(op_code, value))
-    }
-}
-
 fn parse_input(input: &str) -> Data {
-    input.lines().filter_map(|line| line.parse().ok()).collect()
+    input
+        .lines()
+        .map(|line| {
+            let (op_code, value) = line.split_once(' ').unwrap();
+            let op_code = match op_code {
+                "jmp" => OpCode::Jmp,
+                "acc" => OpCode::Acc,
+                _ => OpCode::Nop,
+            };
+            let value = value.parse().unwrap();
+
+            Instruction(op_code, value)
+        })
+        .collect()
 }
 
 fn run_program(program: &Data) -> (i32, usize, Vec<usize>) {
     let mut pointer: usize = 0;
     let mut acc: i32 = 0;
-    let mut seen = Vec::new();
+    let mut seen = vec![false; program.len()];
 
-    while !seen.contains(&pointer) && pointer < program.len() {
+    while pointer < program.len() && !seen[pointer] {
         let instruction = program.get(pointer).unwrap();
-        seen.push(pointer);
+        seen[pointer] = true;
 
         match instruction {
             Instruction(OpCode::Jmp, value) => {
@@ -74,7 +60,15 @@ fn run_program(program: &Data) -> (i32, usize, Vec<usize>) {
         }
     }
 
-    (acc, pointer, seen)
+    (
+        acc,
+        pointer,
+        seen.into_iter()
+            .enumerate()
+            .filter(|(_, v)| *v)
+            .map(|(idx, _)| idx)
+            .collect(),
+    )
 }
 
 fn solve_a(data: &Data) -> Solution {
@@ -102,15 +96,16 @@ fn build_endpoint_graph(data: &Data) -> DiGraph {
     graph
 }
 
-fn reachable_nodes(graph: &DiGraph, start: usize, seen: &mut Vec<usize>) -> Vec<usize> {
+fn reachable_nodes(graph: &DiGraph, start: usize, seen: &mut Vec<bool>) -> Vec<usize> {
     let mut descendants: Vec<usize> = Vec::new();
     descendants.push(start);
-    seen.push(start);
+
+    seen[start] = true;
 
     match graph.get(&start) {
         Some(children) => {
             children.into_iter().for_each(|idx| {
-                if !seen.contains(idx) {
+                if !seen[*idx] {
                     let b = reachable_nodes(graph, *idx, seen);
                     descendants.extend(b);
                 }
@@ -150,7 +145,7 @@ fn find_swap(data: &Data, end_nodes: &Vec<usize>) -> usize {
 // ends up in the set of endpoint connected nodes.
 fn solve_b(data: &Data) -> Solution {
     let graph = build_endpoint_graph(data);
-    let end_nodes = reachable_nodes(&graph, data.len(), &mut Vec::new());
+    let end_nodes = reachable_nodes(&graph, data.len(), &mut vec![false; data.len() + 1]);
     let swap_idx = find_swap(data, &end_nodes);
 
     let mut cloned_program = data.clone();
@@ -245,10 +240,8 @@ acc +6";
 
     #[bench]
     fn bench_b(b: &mut Bencher) {
-        b.iter(|| {
-            let data = parse_input(INPUT);
-            solve_b(&data)
-        })
+        let data = parse_input(INPUT);
+        b.iter(|| build_endpoint_graph(&data))
     }
 
     #[bench]
