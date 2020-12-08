@@ -51,14 +51,14 @@ fn parse_input(input: &str) -> Data {
     input.lines().filter_map(|line| line.parse().ok()).collect()
 }
 
-fn run_program(program: &Data) -> (i32, usize, HashSet<usize>) {
+fn run_program(program: &Data) -> (i32, usize, Vec<usize>) {
     let mut pointer: usize = 0;
     let mut acc: i32 = 0;
-    let mut seen = HashSet::new();
+    let mut seen = Vec::new();
 
     while !seen.contains(&pointer) && pointer < program.len() {
         let instruction = program.get(pointer).unwrap();
-        seen.insert(pointer);
+        seen.push(pointer);
 
         match instruction {
             Instruction(OpCode::Jmp, value) => {
@@ -83,34 +83,29 @@ fn solve_a(data: &Data) -> Solution {
     acc
 }
 
-type DiGraph = HashMap<usize, HashSet<usize>>;
+type DiGraph = HashMap<usize, Vec<usize>>;
 
 fn build_endpoint_graph(data: &Data) -> DiGraph {
     let mut graph: DiGraph = HashMap::new();
 
-    data.into_iter()
-        .enumerate()
-        .for_each(|(idx, Instruction(op_code, value))| {
-            let target: usize = if *op_code == OpCode::Jmp {
-                (idx as i32 + value).max(0) as usize
-            } else {
-                idx + 1
-            };
+    for (idx, Instruction(op_code, value)) in data.into_iter().enumerate() {
+        let target: usize = if *op_code == OpCode::Jmp {
+            (idx as i32 + value).max(0) as usize
+        } else {
+            idx + 1
+        };
 
-            let target = target.min(data.len());
-            graph
-                .entry(target)
-                .or_insert_with(|| HashSet::new())
-                .insert(idx);
-        });
+        let target = target.min(data.len());
+        graph.entry(target).or_insert_with(|| Vec::new()).push(idx);
+    }
 
     graph
 }
 
-fn reachable_nodes(graph: &DiGraph, start: usize, seen: &mut HashSet<usize>) -> HashSet<usize> {
-    let mut descendants: HashSet<usize> = HashSet::new();
-    descendants.insert(start);
-    seen.insert(start);
+fn reachable_nodes(graph: &DiGraph, start: usize, seen: &mut Vec<usize>) -> Vec<usize> {
+    let mut descendants: Vec<usize> = Vec::new();
+    descendants.push(start);
+    seen.push(start);
 
     match graph.get(&start) {
         Some(children) => {
@@ -127,7 +122,7 @@ fn reachable_nodes(graph: &DiGraph, start: usize, seen: &mut HashSet<usize>) -> 
     descendants
 }
 
-fn find_swap(data: &Data, end_nodes: &HashSet<usize>) -> usize {
+fn find_swap(data: &Data, end_nodes: &Vec<usize>) -> usize {
     let (_, _, start_nodes) = run_program(data);
     for idx in start_nodes {
         let Instruction(op_code, value) = data.get(idx).unwrap();
@@ -150,9 +145,12 @@ fn find_swap(data: &Data, end_nodes: &HashSet<usize>) -> usize {
     0
 }
 
+// Find all instructions connected to the endpoint, loop through the instructions
+// seen in the first run and check for every instruction if the target of the swap
+// ends up in the set of endpoint connected nodes.
 fn solve_b(data: &Data) -> Solution {
     let graph = build_endpoint_graph(data);
-    let end_nodes = reachable_nodes(&graph, data.len(), &mut HashSet::new());
+    let end_nodes = reachable_nodes(&graph, data.len(), &mut Vec::new());
     let swap_idx = find_swap(data, &end_nodes);
 
     let mut cloned_program = data.clone();
@@ -166,6 +164,8 @@ fn solve_b(data: &Data) -> Solution {
     acc
 }
 
+// Check all seen `jmp` and `nop` instructions, swap them, run program again
+// and check if it finished without a loop
 fn solve_b_brute_force(data: &Data) -> Solution {
     let (_, _, seen) = run_program(data);
     for idx in seen {
@@ -226,6 +226,13 @@ acc +6";
         let data = parse_input(EXAMPLE);
 
         assert_eq!(solve_b(&data), 8);
+    }
+
+    #[test]
+    fn examples_b_bruteforce() {
+        let data = parse_input(EXAMPLE);
+
+        assert_eq!(solve_b_brute_force(&data), 8);
     }
 
     #[bench]
