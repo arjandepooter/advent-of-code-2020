@@ -1,29 +1,45 @@
+#![feature(test)]
+#![feature(str_split_once)]
 #[allow(unused_imports)]
 use shared::prelude::*;
+
 use std::str::FromStr;
-use strum_macros::EnumString;
+
+extern crate test;
 
 const INPUT: &'static str = include_str!("./input.txt");
 
-type Data<'a> = Program;
+type Data<'a> = Vec<Instruction>;
 type Solution = i32;
 
-#[derive(EnumString, Debug, Clone)]
-#[strum(serialize_all = "lowercase")]
+#[derive(Debug, Clone, PartialEq, Copy)]
 enum OpCode {
     Acc,
     Jmp,
     Nop,
 }
 
-#[derive(Debug, Clone)]
+impl FromStr for OpCode {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "jmp" => Ok(Self::Jmp),
+            "acc" => Ok(Self::Acc),
+            "nop" => Ok(Self::Nop),
+            _ => Err(()),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
 struct Instruction(OpCode, i32);
 
 impl FromStr for Instruction {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let (op_code, value) = s.split_at(3);
+        let (op_code, value) = s.split_once(' ').ok_or(())?;
         let op_code: OpCode = op_code.parse().map_err(|_| ())?;
         let value: i32 = value.trim().parse().map_err(|_| ())?;
 
@@ -31,90 +47,162 @@ impl FromStr for Instruction {
     }
 }
 
-#[derive(Debug, Clone)]
-struct Program {
-    instructions: Vec<Instruction>,
+fn parse_input(input: &str) -> Data {
+    input.lines().filter_map(|line| line.parse().ok()).collect()
 }
 
-impl FromStr for Program {
-    type Err = ();
+fn run_program(program: &Data) -> (i32, usize, HashSet<usize>) {
+    let mut pointer: usize = 0;
+    let mut acc: i32 = 0;
+    let mut seen = HashSet::new();
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let instructions: Vec<Instruction> =
-            s.lines().filter_map(|line| line.parse().ok()).collect();
+    while !seen.contains(&pointer) && pointer < program.len() {
+        let instruction = program.get(pointer).unwrap();
+        seen.insert(pointer);
 
-        Ok(Self { instructions })
-    }
-}
-
-impl Program {
-    fn run(&self) -> Result<i32, i32> {
-        let mut acc = 0;
-        let mut pointer: usize = 0;
-        let mut seen: HashSet<usize> = HashSet::new();
-
-        while !seen.contains(&pointer) && pointer < self.instructions.len() {
-            let instruction = self.instructions.get(pointer).unwrap();
-            seen.insert(pointer);
-
-            match instruction {
-                Instruction(OpCode::Nop, _) => {
-                    pointer += 1;
-                }
-                Instruction(OpCode::Acc, value) => {
-                    acc += value;
-                    pointer += 1;
-                }
-                Instruction(OpCode::Jmp, value) => {
-                    let offset = *value.clamp(
-                        &-(pointer as i32),
-                        &((self.instructions.len() - pointer) as i32),
-                    );
-                    pointer = ((pointer as i32) + offset) as usize;
-                }
+        match instruction {
+            Instruction(OpCode::Jmp, value) => {
+                pointer = (pointer as i32 + value).max(0) as usize;
+            }
+            Instruction(OpCode::Acc, value) => {
+                pointer += 1;
+                acc += value;
+            }
+            Instruction(OpCode::Nop, _) => {
+                pointer += 1;
             }
         }
-
-        if seen.contains(&pointer) {
-            Err(acc)
-        } else {
-            Ok(acc)
-        }
     }
+
+    (acc, pointer, seen)
 }
 
 fn solve_a(data: &Data) -> Solution {
-    data.run().unwrap_err()
+    let (acc, _, _) = run_program(&data);
+
+    acc
+}
+
+type DiGraph = HashMap<usize, HashSet<usize>>;
+
+fn build_endpoint_graph(data: &Data) -> DiGraph {
+    let mut graph: DiGraph = HashMap::new();
+
+    data.into_iter()
+        .enumerate()
+        .for_each(|(idx, Instruction(op_code, value))| {
+            let target: usize = if *op_code == OpCode::Jmp {
+                (idx as i32 + value).max(0) as usize
+            } else {
+                idx + 1
+            };
+
+            let target = target.min(data.len());
+            graph
+                .entry(target)
+                .or_insert_with(|| HashSet::new())
+                .insert(idx);
+        });
+
+    graph
+}
+
+fn reachable_nodes(graph: &DiGraph, start: usize, seen: &mut HashSet<usize>) -> HashSet<usize> {
+    let mut descendants: HashSet<usize> = HashSet::new();
+    descendants.insert(start);
+    seen.insert(start);
+
+    match graph.get(&start) {
+        Some(children) => {
+            children.into_iter().for_each(|idx| {
+                if !seen.contains(idx) {
+                    let b = reachable_nodes(graph, *idx, seen);
+                    descendants.extend(b);
+                }
+            });
+        }
+        None => (),
+    }
+
+    descendants
+}
+
+fn find_swap(data: &Data, end_nodes: &HashSet<usize>) -> usize {
+    let (_, _, start_nodes) = run_program(data);
+    for idx in start_nodes {
+        let Instruction(op_code, value) = data.get(idx).unwrap();
+
+        match *op_code {
+            OpCode::Nop | OpCode::Jmp => {
+                let target = if *op_code == OpCode::Nop {
+                    (idx as i32 + value).min(data.len() as i32) as usize
+                } else {
+                    idx + 1
+                };
+                if end_nodes.contains(&target) {
+                    return idx;
+                }
+            }
+            _ => (),
+        }
+    }
+
+    0
 }
 
 fn solve_b(data: &Data) -> Solution {
-    data.instructions
-        .iter()
-        .enumerate()
-        .find_map(|(idx, instruction)| match instruction {
-            Instruction(OpCode::Acc, _) => None,
-            Instruction(op_code, value) => {
-                let mut program = data.clone();
-                program.instructions[idx] = match op_code {
-                    OpCode::Jmp => Instruction(OpCode::Nop, *value),
-                    _ => Instruction(OpCode::Jmp, *value),
+    let graph = build_endpoint_graph(data);
+    let end_nodes = reachable_nodes(&graph, data.len(), &mut HashSet::new());
+    let swap_idx = find_swap(data, &end_nodes);
+
+    let mut cloned_program = data.clone();
+    cloned_program[swap_idx] = match data[swap_idx] {
+        Instruction(OpCode::Nop, value) => Instruction(OpCode::Jmp, value),
+        Instruction(OpCode::Jmp, value) => Instruction(OpCode::Nop, value),
+        nop => nop,
+    };
+
+    let (acc, _, _) = run_program(&cloned_program);
+    acc
+}
+
+fn solve_b_brute_force(data: &Data) -> Solution {
+    let (_, _, seen) = run_program(data);
+    for idx in seen {
+        match data.get(idx) {
+            Some(Instruction(op_code, value))
+                if *op_code == OpCode::Nop || *op_code == OpCode::Jmp =>
+            {
+                let mut cloned = data.clone();
+                let op_code = if *op_code == OpCode::Jmp {
+                    OpCode::Nop
+                } else {
+                    OpCode::Jmp
                 };
-                program.run().ok()
+                cloned[idx] = Instruction(op_code, *value);
+                let (acc, pointer, _) = &run_program(&cloned);
+                if *pointer >= cloned.len() {
+                    return *acc;
+                }
             }
-        })
-        .unwrap()
+            _ => {}
+        }
+    }
+    0
 }
 
 fn main() {
-    let data = INPUT.parse().unwrap();
+    let data = parse_input(INPUT);
 
     println!("Part A: {}", solve_a(&data));
     println!("Part B: {}", solve_b(&data));
+    println!("Part B (bruteforce): {}", solve_b_brute_force(&data));
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use test::Bencher;
 
     const EXAMPLE: &'static str = "nop +0
 acc +1
@@ -128,15 +216,39 @@ acc +6";
 
     #[test]
     fn examples_a() {
-        let data = EXAMPLE.parse::<Program>().unwrap();
+        let data = parse_input(EXAMPLE);
 
         assert_eq!(solve_a(&data), 5);
     }
 
     #[test]
     fn examples_b() {
-        let data = EXAMPLE.parse::<Program>().unwrap();
+        let data = parse_input(EXAMPLE);
 
         assert_eq!(solve_b(&data), 8);
+    }
+
+    #[bench]
+    fn bench_a(b: &mut Bencher) {
+        b.iter(|| {
+            let data = parse_input(INPUT);
+            solve_a(&data)
+        })
+    }
+
+    #[bench]
+    fn bench_b(b: &mut Bencher) {
+        b.iter(|| {
+            let data = parse_input(INPUT);
+            solve_b(&data)
+        })
+    }
+
+    #[bench]
+    fn bench_b_bruteforce(b: &mut Bencher) {
+        b.iter(|| {
+            let data = parse_input(INPUT);
+            solve_b_brute_force(&data)
+        })
     }
 }
