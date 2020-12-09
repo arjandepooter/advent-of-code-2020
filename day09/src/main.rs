@@ -1,6 +1,8 @@
 #[allow(unused_imports)]
 use shared::prelude::*;
 
+use std::iter::repeat;
+
 const INPUT: &'static str = include_str!("./input.txt");
 
 type Data<'a> = Vec<i128>;
@@ -40,29 +42,22 @@ fn solve_a(data: &Data) -> Solution {
     find_invalid_number(data, 25)
 }
 
-fn find_sum_set(data: &Vec<i128>, sum: i128) -> &[i128] {
-    let mut front: usize = 0;
-    let mut back: usize = 1;
-
-    loop {
-        let slc = &data[front..=back];
-        let slc_sum: i128 = slc.iter().sum();
-
-        if slc_sum == sum {
-            return slc;
-        }
-        if slc_sum > sum {
-            front += 1;
-        } else {
-            back += 1;
-        }
-    }
+fn find_sum_range(data: &Vec<i128>, sum: i128) -> (usize, usize) {
+    repeat((data, sum))
+        .try_fold((0, 1), |(front, back), (data, sum)| {
+            match data[front..back].iter().sum::<i128>() {
+                slc_sum if slc_sum > sum => Continue((front + 1, back)),
+                slc_sum if slc_sum < sum => Continue((front, back + 1)),
+                _equals => Stop((front, back)),
+            }
+        })
+        .unwrap()
 }
 
 fn solve_b(data: &Data) -> Solution {
     let invalid_number = find_invalid_number(data, 25);
-    let set = find_sum_set(data, invalid_number);
-
+    let (start, stop) = find_sum_range(data, invalid_number);
+    let set = &data[start..stop];
     set.iter().max().unwrap() + set.iter().min().unwrap()
 }
 
@@ -109,6 +104,6 @@ mod tests {
     fn examples_b() {
         let data = parse_input(EXAMPLE);
         let n = find_invalid_number(&data, 5);
-        assert_eq!(find_sum_set(&data, n), &[15, 25, 47, 40]);
+        assert_eq!(find_sum_range(&data, n), (2, 6));
     }
 }
