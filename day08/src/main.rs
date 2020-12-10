@@ -80,7 +80,7 @@ fn solve_a(data: &Data) -> Solution {
 type DiGraph = HashMap<usize, Vec<usize>>;
 
 fn build_endpoint_graph(data: &Data) -> DiGraph {
-    let mut graph: DiGraph = HashMap::new();
+    let mut graph: DiGraph = HashMap::with_capacity(data.len());
 
     for (idx, Instruction(op_code, value)) in data.into_iter().enumerate() {
         let target: usize = if *op_code == OpCode::Jmp {
@@ -241,7 +241,7 @@ acc +6";
     #[bench]
     fn bench_b(b: &mut Bencher) {
         let data = parse_input(INPUT);
-        b.iter(|| build_endpoint_graph(&data))
+        b.iter(|| solve_b(&data))
     }
 
     #[bench]
