@@ -1,7 +1,10 @@
+#![feature(test)]
 #[allow(unused_imports)]
 use shared::prelude::*;
 
 use std::iter::once;
+
+extern crate test;
 
 const INPUT: &'static str = include_str!("./input.txt");
 
@@ -38,21 +41,23 @@ fn solve_a(data: &Data) -> Solution {
     let mut seq = data.clone();
     seq.sort();
 
-    let (ones, threes) =
-        once(&0)
-            .chain(seq.iter())
-            .zip(seq.iter())
-            .fold((0, 1), |(ones, threes), (a, b)| match b - a {
-                1 => (ones + 1, threes),
-                3 => (ones, threes + 1),
-                _ => (ones, threes),
-            });
+    let endpoint = seq.iter().max().unwrap() + 3;
+    let iter_start = once(&0).chain(seq.iter());
+    let iter_end = seq.iter().chain(once(&endpoint));
+
+    let (ones, threes) = iter_start
+        .zip(iter_end)
+        .fold((0, 0), |(ones, threes), (a, b)| match b - a {
+            1 => (ones + 1, threes),
+            3 => (ones, threes + 1),
+            _ => (ones, threes),
+        });
 
     ones * threes
 }
 
 fn solve_b(data: &Data) -> Solution {
-    let mut mem = HashMap::new();
+    let mut mem = HashMap::with_capacity(data.len());
 
     number_of_combinations(data, 0, &mut mem)
 }
@@ -67,6 +72,7 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use test::Bencher;
 
     const EXAMPLE: &'static str = "16
 10
@@ -90,5 +96,12 @@ mod tests {
     fn examples_b() {
         let data = parse_input(EXAMPLE);
         assert_eq!(solve_b(&data), 8);
+    }
+
+    #[bench]
+    fn bench_b(b: &mut Bencher) {
+        let data = parse_input(INPUT);
+
+        b.iter(|| solve_b(&data))
     }
 }
