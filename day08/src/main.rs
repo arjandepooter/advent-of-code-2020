@@ -90,15 +90,17 @@ fn build_endpoint_graph(data: &Data) -> DiGraph {
         };
 
         let target = target.min(data.len());
-        graph.entry(target).or_insert_with(|| Vec::new()).push(idx);
+        graph
+            .entry(target)
+            .or_insert_with(|| Vec::with_capacity(5))
+            .push(idx);
     }
 
     graph
 }
 
 fn reachable_nodes(graph: &DiGraph, start: usize, seen: &mut Vec<bool>) -> Vec<usize> {
-    let mut descendants: Vec<usize> = Vec::new();
-    descendants.push(start);
+    let mut descendants: Vec<usize> = vec![start];
 
     seen[start] = true;
 
