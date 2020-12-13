@@ -34,31 +34,24 @@ fn solve_a((target, busses): &Data) -> Solution {
 }
 
 fn inverse(n: i128, x: i128) -> i128 {
-    for i in 0..x {
-        if i * n % x == 1 {
-            return i;
-        }
-    }
-    0
+    (0..x).find(|i| i * n % x == 1).unwrap_or(0)
 }
 
 fn solve_b((_, busses): &Data) -> Solution {
     let busses: Vec<_> = busses
         .iter()
         .enumerate()
-        .filter_map(|(idx, bus)| match bus {
-            Some(bus) => Some((idx, *bus)),
-            None => None,
-        })
+        .filter_map(|(idx, bus)| bus.map(|id| (idx, id)))
         .collect();
 
+    // Chinese Remainder Theorem
     let n: i128 = busses.iter().map(|(_, n)| n).product();
 
     let total: i128 = busses
         .iter()
         .map(|(idx, bus)| {
-            let b = (*bus - *idx as i128) % *bus;
-            let ni = n / *bus;
+            let b = (bus - *idx as i128) % bus;
+            let ni = n / bus;
             let x = inverse(ni, *bus);
 
             b * ni * x
