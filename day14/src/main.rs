@@ -82,7 +82,7 @@ fn solve_a(data: &Data) -> Solution {
 }
 
 fn solve_b(data: &Data) -> Solution {
-    let mut mem = HashMap::new();
+    let mut mem = HashMap::with_capacity(100_000);
     let mut result = 0;
 
     for (mask, assignments) in data {
