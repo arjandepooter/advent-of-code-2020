@@ -47,7 +47,7 @@ fn parse_input(input: &str) -> Data {
 fn apply_mask(mask: &Vec<char>, value: u64) -> u64 {
     mask.iter().enumerate().fold(0, |acc, (idx, c)| match *c {
         '1' => acc | 1 << idx,
-        'X' => acc | (value >> idx) % 2 << idx,
+        'X' => acc | ((value >> idx) & 1) << idx,
         _ => acc,
     })
 }
@@ -61,8 +61,8 @@ fn expand_mask(mask: &Vec<char>, value: u64) -> Vec<u64> {
                 .enumerate()
                 .fold((0, n), |(acc, n), (idx, c)| match c {
                     '1' => (acc | 1 << idx, n),
-                    'X' => (acc | n % 2 << idx, n >> 1),
-                    _ => (acc | (value >> idx) % 2 << idx, n),
+                    'X' => (acc | (n & 1) << idx, n >> 1),
+                    _ => (acc | ((value >> idx) & 1) << idx, n),
                 })
                 .0
         })
