@@ -52,23 +52,6 @@ fn apply_mask(mask: &Vec<char>, value: u64) -> u64 {
     })
 }
 
-fn expand_mask(mask: &Vec<char>, value: u64) -> Vec<u64> {
-    let xs = mask.iter().filter(|c| **c == 'X').count() as u32;
-
-    (0..(2u64.pow(xs)))
-        .map(|n| {
-            mask.iter()
-                .enumerate()
-                .fold((0, n), |(acc, n), (idx, c)| match c {
-                    '1' => (acc | 1 << idx, n),
-                    'X' => (acc | (n & 1) << idx, n >> 1),
-                    _ => (acc | ((value >> idx) & 1) << idx, n),
-                })
-                .0
-        })
-        .collect()
-}
-
 fn solve_a(data: &Data) -> Solution {
     let mut mem = HashMap::with_capacity(data.iter().map(|(_, ass)| ass.len()).sum());
 
@@ -81,21 +64,84 @@ fn solve_a(data: &Data) -> Solution {
     mem.values().sum()
 }
 
+fn apply_memmask(mask: &Vec<char>, target: u64) -> Vec<char> {
+    mask.iter()
+        .enumerate()
+        .map(|(idx, c)| match c {
+            '1' => '1',
+            '0' => {
+                if ((target >> idx) & 1) == 1 {
+                    '1'
+                } else {
+                    '0'
+                }
+            }
+            c => *c,
+        })
+        .collect()
+}
+
+fn has_overlap(source: &Vec<char>, target: &Vec<char>) -> bool {
+    !source
+        .iter()
+        .zip(target.iter())
+        .any(|(sc, tc)| *tc != 'X' && *sc != 'X' && *tc != *sc)
+}
+
+fn purge_overlap(source: &Vec<char>, target: &Vec<char>) -> Vec<Vec<char>> {
+    // find first overlap
+    match source
+        .iter()
+        .zip(target.iter())
+        .find_position(|(sc, tc)| **tc == 'X' && **sc != 'X')
+    {
+        Some((idx, (sc, _))) => {
+            let mut first = target.clone();
+            first[idx] = if *sc == '1' { '0' } else { '1' };
+
+            let (head, tail) = target.split_at(idx);
+            let mut tail = tail.to_vec();
+            tail[0] = if *sc == '1' { '1' } else { '0' };
+            let mut source_tail = source.clone();
+            source_tail.drain(0..idx);
+
+            purge_overlap(&source_tail, &tail)
+                .into_iter()
+                .map(|tail| head.iter().chain(&tail).map(|c| *c).collect())
+                .chain(std::iter::once(first))
+                .collect()
+        }
+        None => vec![],
+    }
+}
+
 fn solve_b(data: &Data) -> Solution {
-    let mut mem = HashMap::with_capacity(100_000);
-    let mut result = 0;
+    let mut memmasks: Vec<(Vec<char>, u64)> = Vec::new();
 
     for (mask, assignments) in data {
         for (target, value) in assignments {
-            for address in expand_mask(mask, *target) {
-                let old = mem.insert(address, *value);
-                result += *value;
-                result -= old.unwrap_or(0);
-            }
+            let source_mask = apply_memmask(mask, *target);
+            memmasks = memmasks
+                .into_iter()
+                .flat_map(|(target_mask, value)| {
+                    if has_overlap(&source_mask, &target_mask) {
+                        purge_overlap(&source_mask, &target_mask)
+                            .into_iter()
+                            .map(|mask| (mask, value))
+                            .collect::<Vec<(Vec<char>, u64)>>()
+                    } else {
+                        vec![(target_mask, value)]
+                    }
+                })
+                .collect();
+            memmasks.push((source_mask, *value))
         }
     }
 
-    result
+    memmasks
+        .iter()
+        .map(|(mask, value)| *value * 2u64.pow(mask.iter().filter(|c| **c == 'X').count() as u32))
+        .sum()
 }
 
 fn main() {
@@ -130,5 +176,40 @@ mask = 00000000000000000000000000000000X0XX
 mem[26] = 1",
         );
         assert_eq!(solve_b(&data), 208);
+    }
+
+    #[test]
+    fn overlap() {
+        let mask1 = vec!['X', 'X', 'X', '1', '1', 'X'];
+        let mask2 = vec!['1', '1', '0', 'X', 'X', 'X'];
+
+        let purged_masks = purge_overlap(&mask2, &mask1);
+
+        assert_eq!(
+            purged_masks,
+            vec![
+                vec!['1', '1', '1', '1', '1', 'X',],
+                vec!['1', '0', 'X', '1', '1', 'X',],
+                vec!['0', 'X', 'X', '1', '1', 'X',],
+            ]
+        )
+    }
+
+    #[test]
+    fn fully_covered() {
+        let mask1 = vec!['X', 'X', 'X', '1', '1', 'X'];
+        let mask2 = vec!['X', 'X', 'X', '1', '1', 'X'];
+
+        let purged_masks = purge_overlap(&mask2, &mask1);
+
+        assert_eq!(purged_masks, Vec::<Vec<char>>::new());
+    }
+
+    #[test]
+    fn no_overlap() {
+        let mask1 = vec!['X', 'X', '0', '1', '1', 'X'];
+        let mask2 = vec!['X', 'X', '1', '1', '1', 'X'];
+
+        assert_eq!(has_overlap(&mask2, &mask1), false);
     }
 }
