@@ -78,7 +78,4 @@ mod tests {
 
         assert_eq!(solve_a(&data), 436);
     }
-
-    #[test]
-    fn examples_b() {}
 }
