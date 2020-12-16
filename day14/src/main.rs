@@ -101,7 +101,7 @@ fn purge_overlap(source: &Vec<char>, target: &Vec<char>) -> Vec<Vec<char>> {
 
             let (head, tail) = target.split_at(idx);
             let mut tail = tail.to_vec();
-            tail[0] = if *sc == '1' { '1' } else { '0' };
+            tail[0] = *sc;
             let mut source_tail = source.clone();
             source_tail.drain(0..idx);
 
