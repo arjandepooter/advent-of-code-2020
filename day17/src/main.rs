@@ -103,8 +103,6 @@ impl<const DIMENSIONS: usize> Conway<DIMENSIONS> {
     }
 }
 
-// impl Conway {}
-
 fn solve_a(data: &Data) -> Solution {
     let mut conway: Conway<3> = Conway::from_2d(data.clone());
 
