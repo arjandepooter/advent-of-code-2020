@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "advent-of-code-2020"
+version = "0.1.0"
+description = ""
+authors = ["Arjan de Pooter <mail@arjandepooter.nl>"]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+ipython = "^7.28.0"
+numpy = {version = "^1.21.2", python = "<3.11"}
+
+[tool.poetry.dev-dependencies]
+black = {version = "^21.9b0", allow-prereleases = true}
+pytest = "^6.2.5"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
